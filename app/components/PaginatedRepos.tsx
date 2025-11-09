@@ -24,6 +24,8 @@ type YearTab = {
 
 export default function PaginatedRepos({ repos }: PaginatedReposProps) {
   const entriesPerPage = 8;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
 
   // Dynamically determine years and group repos
   const { availableTabs, reposByYear } = useMemo(() => {
@@ -104,15 +106,64 @@ export default function PaginatedRepos({ repos }: PaginatedReposProps) {
     }
   }, [availableTabs, reposByYear, selectedYear]);
 
-  const selectedRepos = reposByYear[selectedYear] || [];
-  const totalPages = Math.ceil(selectedRepos.length / entriesPerPage);
+  // Get all available languages from repos
+  const availableLanguages = useMemo(() => {
+    const languages = new Set<string>();
+    repos.forEach((repo) => {
+      if (repo.language) {
+        languages.add(repo.language);
+      }
+    });
+    return Array.from(languages).sort();
+  }, [repos]);
+
+  // Filter repos by year, search query, and language
+  const filteredRepos = useMemo(() => {
+    let filtered = reposByYear[selectedYear] || [];
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((repo) => {
+        const nameMatch = repo.name.toLowerCase().includes(query);
+        const descMatch = repo.description?.toLowerCase().includes(query) || false;
+        const langMatch = repo.language?.toLowerCase().includes(query) || false;
+        return nameMatch || descMatch || langMatch;
+      });
+    }
+    
+    // Apply language filter
+    if (selectedLanguage) {
+      filtered = filtered.filter((repo) => repo.language === selectedLanguage);
+    }
+    
+    return filtered;
+  }, [reposByYear, selectedYear, searchQuery, selectedLanguage]);
+
+  const totalPages = Math.ceil(filteredRepos.length / entriesPerPage);
   const startIndex = (currentPage - 1) * entriesPerPage;
   const endIndex = startIndex + entriesPerPage;
-  const displayRepos = selectedRepos.slice(startIndex, endIndex);
+  const displayRepos = filteredRepos.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedYear, searchQuery, selectedLanguage]);
 
   // Reset to page 1 when year changes
   const handleYearChange = (year: string) => {
     setSelectedYear(year);
+    setCurrentPage(1);
+  };
+
+  const handleLanguageFilter = (language: string | null) => {
+    setSelectedLanguage(language === selectedLanguage ? null : language);
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedLanguage(null);
     setCurrentPage(1);
   };
 
@@ -132,7 +183,7 @@ export default function PaginatedRepos({ repos }: PaginatedReposProps) {
     <div>
       {/* Year tabs - show below GitHub Projects title */}
       {availableTabs.length > 0 && (
-        <div className="mt-2 mb-4 flex items-center gap-2 flex-wrap border-b border-gray-200">
+        <div className="mt-2 mb-4 flex items-center gap-2 flex-wrap border-b border-gray-200 dark:border-gray-700">
           {availableTabs.map((tab) => (
             <button
               key={tab.year}
@@ -140,15 +191,88 @@ export default function PaginatedRepos({ repos }: PaginatedReposProps) {
               disabled={tab.count === 0}
               className={`px-4 py-2 font-medium transition-colors border-b-2 ${
                 tab.count === 0
-                  ? 'border-transparent text-gray-400 cursor-not-allowed'
+                  ? 'border-transparent text-gray-400 dark:text-gray-600 cursor-not-allowed'
                   : selectedYear === tab.year
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
               {tab.label} ({tab.count})
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Search bar */}
+      <div className="mb-4">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search repositories by name, description, or language..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          />
+          <svg
+            className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {(searchQuery || selectedLanguage) && (
+            <button
+              onClick={clearFilters}
+              className="absolute right-3 top-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+              aria-label="Clear filters"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Language filters */}
+      {availableLanguages.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by language:</span>
+            <button
+              onClick={() => handleLanguageFilter(null)}
+              className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                selectedLanguage === null
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              All
+            </button>
+            {availableLanguages.map((language) => (
+              <button
+                key={language}
+                onClick={() => handleLanguageFilter(language)}
+                className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                  selectedLanguage === language
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                {language}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Results count */}
+      {(searchQuery || selectedLanguage) && (
+        <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+          Showing {filteredRepos.length} {filteredRepos.length === 1 ? 'repository' : 'repositories'}
+          {searchQuery && ` matching "${searchQuery}"`}
+          {selectedLanguage && ` in ${selectedLanguage}`}
         </div>
       )}
 
@@ -159,25 +283,27 @@ export default function PaginatedRepos({ repos }: PaginatedReposProps) {
             <RepoCard key={repo.id} repo={repo} />
           ))
         ) : (
-          <p className="text-gray-500 col-span-2">No projects found for this year.</p>
+          <p className="text-gray-500 dark:text-gray-400 col-span-2 text-center py-8">
+            No projects found{searchQuery || selectedLanguage ? ' matching your filters' : ' for this year'}.
+          </p>
         )}
       </div>
 
       {/* Pagination controls - moved to bottom */}
-      {selectedRepos.length > entriesPerPage && (
+      {filteredRepos.length > entriesPerPage && (
         <div className="mt-6 mb-4 flex items-center justify-center gap-4 flex-wrap">
           <button
             onClick={handlePrevious}
             disabled={currentPage === 1}
             className={`px-4 py-2 rounded transition-colors ${
               currentPage === 1
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-500 text-white hover:bg-blue-600'
+                ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                : 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
             }`}
           >
             Previous
           </button>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
             Page {currentPage} of {totalPages}
           </span>
           <button
@@ -185,8 +311,8 @@ export default function PaginatedRepos({ repos }: PaginatedReposProps) {
             disabled={currentPage === totalPages}
             className={`px-4 py-2 rounded transition-colors ${
               currentPage === totalPages
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-500 text-white hover:bg-blue-600'
+                ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                : 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
             }`}
           >
             Next

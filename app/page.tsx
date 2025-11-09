@@ -24,10 +24,10 @@ export default async function HomePage() {
 
   return (
     <main className="p-2 sm:p-4">
-      <h1 className="text-3xl font-bold">About Me</h1>
-      <p className="mt-2 text-gray-700 whitespace-pre-line">{BIO}</p>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">About Me</h1>
+      <p className="mt-2 text-gray-700 dark:text-gray-300 whitespace-pre-line">{BIO}</p>
 
-      <h2 className="text-2xl font-semibold mt-8">GitHub Projects</h2>
+      <h2 className="text-2xl font-semibold mt-8 text-gray-900 dark:text-gray-100">GitHub Projects</h2>
       <PaginatedRepos repos={repos} />
     </main>
   );
