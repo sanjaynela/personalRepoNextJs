@@ -17,8 +17,24 @@ const BIO = `Sanjay Nelagadde is a Senior Software Engineer with a Master's in C
 export default async function HomePage() {
   const h = headers();
   const host = h.get('x-forwarded-host') ?? h.get('host');
-  const proto = h.get('x-forwarded-proto') ?? 'http';
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? (host ? `${proto}://${host}` : 'http://localhost:3000');
+  const proto = h.get('x-forwarded-proto') ?? 'https';
+  
+  // Construct absolute URL - Vercel provides these headers
+  let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  if (!baseUrl) {
+    if (host) {
+      baseUrl = `${proto}://${host}`;
+    } else {
+      // Fallback for local development
+      baseUrl = process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` 
+        : 'http://localhost:3000';
+    }
+  }
+  
+  // Ensure baseUrl doesn't end with slash
+  baseUrl = baseUrl.replace(/\/$/, '');
+  
   const res = await fetch(`${baseUrl}/api/github`, { cache: 'no-store' });
   const repos: Repo[] = await res.json();
 
