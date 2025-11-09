@@ -1,4 +1,4 @@
-import RepoCard from './components/RepoCard';
+import PaginatedRepos from './components/PaginatedRepos';
 import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,7 @@ type Repo = {
   created_at?: string;
 };
 
-const BIO = `Sanjay Nelagadde is a Senior Software Engineer with a Master's in CS from USC. He has 5+ years of experience in full-stack, mobile, and cloud development (AWS, Azure, GCP).`;
+const BIO = `Sanjay Nelagadde is a Senior Software Engineer with a Master's in CS from USC. He has 7 years of experience in full-stack, mobile, and cloud development (AWS, Azure, GCP).`;
 
 export default async function HomePage() {
   const h = headers();
@@ -28,11 +28,7 @@ export default async function HomePage() {
       <p className="mt-2 text-gray-700 whitespace-pre-line">{BIO}</p>
 
       <h2 className="text-2xl font-semibold mt-8">GitHub Projects</h2>
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {repos.map((repo) => (
-          <RepoCard key={repo.id} repo={repo} />
-        ))}
-      </div>
+      <PaginatedRepos repos={repos} />
     </main>
   );
 }
