@@ -1,5 +1,4 @@
 import PaginatedRepos from './components/PaginatedRepos';
-import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,28 +14,32 @@ type Repo = {
 const BIO = `Sanjay Nelagadde is a Senior Software Engineer with a Master's in CS from USC. He has 7 years of experience in full-stack, mobile, and cloud development (AWS, Azure, GCP).`;
 
 export default async function HomePage() {
-  const h = headers();
-  const host = h.get('x-forwarded-host') ?? h.get('host');
-  const proto = h.get('x-forwarded-proto') ?? 'https';
+  // Call GitHub API directly instead of going through internal API route
+  // This avoids URL construction issues in server components
+  const username = process.env.GITHUB_USERNAME || 'your-github-username';
+  const url = `https://api.github.com/users/${username}/repos?per_page=100&sort=created&direction=desc`;
   
-  // Construct absolute URL - Vercel provides these headers
-  let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  if (!baseUrl) {
-    if (host) {
-      baseUrl = `${proto}://${host}`;
-    } else {
-      // Fallback for local development
-      baseUrl = process.env.VERCEL_URL 
-        ? `https://${process.env.VERCEL_URL}` 
-        : 'http://localhost:3000';
-    }
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'nextjs-portfolio',
+      'Accept': 'application/vnd.github+json',
+      ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {})
+    },
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch GitHub repositories');
   }
-  
-  // Ensure baseUrl doesn't end with slash
-  baseUrl = baseUrl.replace(/\/$/, '');
-  
-  const res = await fetch(`${baseUrl}/api/github`, { cache: 'no-store' });
-  const repos: Repo[] = await res.json();
+
+  const data = await res.json();
+  const repos: Repo[] = Array.isArray(data)
+    ? [...data].sort((a, b) => {
+        const da = new Date(a?.created_at ?? 0).getTime();
+        const db = new Date(b?.created_at ?? 0).getTime();
+        return db - da; // newest first
+      })
+    : [];
 
   return (
     <main className="p-2 sm:p-4">
