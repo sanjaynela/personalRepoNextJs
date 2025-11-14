@@ -14,32 +14,42 @@ type Repo = {
 const BIO = `Sanjay Nelagadde is a Senior Software Engineer with a Master's in CS from USC. He has 7 years of experience in full-stack, mobile, and cloud development (AWS, Azure, GCP).`;
 
 export default async function HomePage() {
-  // Call GitHub API directly instead of going through internal API route
-  // This avoids URL construction issues in server components
+  // Call GitHub API directly with absolute URL
+  // This is required for server components in production (Vercel)
   const username = process.env.GITHUB_USERNAME || 'your-github-username';
   const url = `https://api.github.com/users/${username}/repos?per_page=100&sort=created&direction=desc`;
   
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'nextjs-portfolio',
-      'Accept': 'application/vnd.github+json',
-      ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {})
-    },
-    cache: 'no-store',
-  });
+  let repos: Repo[] = [];
+  
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'nextjs-portfolio',
+        'Accept': 'application/vnd.github+json',
+        ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {})
+      },
+      cache: 'no-store',
+    });
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch GitHub repositories');
+    if (!res.ok) {
+      console.error(`GitHub API error: ${res.status} ${res.statusText}`);
+      // Return empty array instead of throwing to prevent page crash
+      repos = [];
+    } else {
+      const data = await res.json();
+      repos = Array.isArray(data)
+        ? [...data].sort((a, b) => {
+            const da = new Date(a?.created_at ?? 0).getTime();
+            const db = new Date(b?.created_at ?? 0).getTime();
+            return db - da; // newest first
+          })
+        : [];
+    }
+  } catch (error) {
+    console.error('Error fetching GitHub repositories:', error);
+    // Return empty array to prevent page crash
+    repos = [];
   }
-
-  const data = await res.json();
-  const repos: Repo[] = Array.isArray(data)
-    ? [...data].sort((a, b) => {
-        const da = new Date(a?.created_at ?? 0).getTime();
-        const db = new Date(b?.created_at ?? 0).getTime();
-        return db - da; // newest first
-      })
-    : [];
 
   return (
     <main className="p-2 sm:p-4">
