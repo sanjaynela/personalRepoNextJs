@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const username = process.env.GITHUB_USERNAME || 'your-github-username';
+    const username = process.env.GITHUB_USERNAME || 'sanjaynela';
     const url = `https://api.github.com/users/${username}/repos?per_page=100&sort=created&direction=desc`;
     const res = await fetch(url, {
       headers: {
@@ -32,4 +32,3 @@ export async function GET() {
     return NextResponse.json({ error: 'Unexpected error' }, { status: 500 });
   }
 }
-

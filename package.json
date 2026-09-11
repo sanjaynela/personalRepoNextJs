@@ -10,6 +10,7 @@
     "postinstall": "next telemetry disable || true"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "next": "14.2.5",
     "react": "18.3.1",
     "react-dom": "18.3.1"
@@ -26,4 +27,3 @@
     "typescript": "5.5.4"
   }
 }
-

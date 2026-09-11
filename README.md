@@ -1,5 +1,7 @@
 # Next.js GitHub Portfolio (ISR + API Routes + App Router)
 
+**Live portfolio:** [sanjaynelagadde.vercel.app](https://sanjaynelagadde.vercel.app)
+
 A minimal Next.js 14 app that server-renders your GitHub repositories with Incremental Static Regeneration (ISR), showcases file-based routing, route handlers (API routes), and built-in image optimization. Inspired by the article "From React to Next.js: Why I Finally Switched and What I Learned".
 
 ## Features
@@ -31,11 +33,11 @@ Open `http://localhost:3000`.
 
 ## Configuration
 - Set your GitHub username via env var:
-- `GITHUB_USERNAME` (defaults to `your-github-username`)
+- `GITHUB_USERNAME` (defaults to `sanjaynela`)
   - Optional `GITHUB_TOKEN` to raise rate limits
 - For local dev, create `.env.local`:
 ```bash
-GITHUB_USERNAME=your-github-username
+GITHUB_USERNAME=sanjaynela
 # GITHUB_TOKEN=ghp_xxx
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 # Optional for webhook revalidation

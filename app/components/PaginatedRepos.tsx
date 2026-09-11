@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { MagnifyingGlass, X } from '@phosphor-icons/react';
 import RepoCard from './RepoCard';
 
 type Repo = {
@@ -12,314 +13,198 @@ type Repo = {
   created_at?: string;
 };
 
-type PaginatedReposProps = {
-  repos: Repo[];
-};
-
 type YearTab = {
   year: string;
   label: string;
   count: number;
 };
 
-export default function PaginatedRepos({ repos }: PaginatedReposProps) {
-  const entriesPerPage = 8;
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+const ENTRIES_PER_PAGE = 8;
 
-  // Dynamically determine years and group repos
+export default function PaginatedRepos({ repos }: { repos: Repo[] }) {
   const { availableTabs, reposByYear } = useMemo(() => {
-    const reposByYearMap: Record<number, Repo[]> = {};
-    const years: number[] = [];
+    const grouped = new Map<number, Repo[]>();
 
-    // Group repos by year
-    repos.forEach((repo) => {
-      if (repo.created_at) {
-        const year = new Date(repo.created_at).getFullYear();
-        if (!reposByYearMap[year]) {
-          reposByYearMap[year] = [];
-          years.push(year);
-        }
-        reposByYearMap[year].push(repo);
-      }
-    });
+    for (const repo of repos) {
+      if (!repo.created_at) continue;
+      const year = new Date(repo.created_at).getFullYear();
+      grouped.set(year, [...(grouped.get(year) ?? []), repo]);
+    }
 
-    // Sort years descending
-    years.sort((a, b) => b - a);
-
-    // Build tabs: latest year, next year (if exists), and older
+    const years = [...grouped.keys()].sort((a, b) => b - a);
     const tabs: YearTab[] = [];
-    const reposByYear: Record<string, Repo[]> = {};
+    const tabRepos: Record<string, Repo[]> = {};
 
     if (years.length > 0) {
-      const latestYear = years[0];
-      const latestYearRepos = reposByYearMap[latestYear];
-      tabs.push({
-        year: latestYear.toString(),
-        label: latestYear.toString(),
-        count: latestYearRepos.length,
-      });
-      reposByYear[latestYear.toString()] = latestYearRepos;
+      const latest = years[0];
+      const latestRepos = grouped.get(latest) ?? [];
+      tabs.push({ year: String(latest), label: String(latest), count: latestRepos.length });
+      tabRepos[String(latest)] = latestRepos;
 
-      // Check for next year (latestYear - 1)
-      if (years.length > 1 && years[1] === latestYear - 1) {
-        const nextYear = years[1];
-        const nextYearRepos = reposByYearMap[nextYear];
-        tabs.push({
-          year: nextYear.toString(),
-          label: nextYear.toString(),
-          count: nextYearRepos.length,
-        });
-        reposByYear[nextYear.toString()] = nextYearRepos;
+      if (years[1] === latest - 1) {
+        const previous = years[1];
+        const previousRepos = grouped.get(previous) ?? [];
+        tabs.push({ year: String(previous), label: String(previous), count: previousRepos.length });
+        tabRepos[String(previous)] = previousRepos;
       }
 
-      // Collect all older repos (everything before the second tab or latest year)
-      const olderRepos: Repo[] = [];
-      const cutoffYear = tabs.length === 2 ? parseInt(tabs[1].year) : latestYear;
-      years.forEach((year) => {
-        if (year < cutoffYear) {
-          olderRepos.push(...reposByYearMap[year]);
-        }
-      });
-
-      if (olderRepos.length > 0) {
-        tabs.push({
-          year: 'older',
-          label: 'Older',
-          count: olderRepos.length,
-        });
-        reposByYear['older'] = olderRepos;
+      const cutoff = tabs.length === 2 ? Number(tabs[1].year) : latest;
+      const older = years.filter((year) => year < cutoff).flatMap((year) => grouped.get(year) ?? []);
+      if (older.length > 0) {
+        tabs.push({ year: 'older', label: 'Earlier', count: older.length });
+        tabRepos.older = older;
       }
     }
 
-    return { availableTabs: tabs, reposByYear };
+    return { availableTabs: tabs, reposByYear: tabRepos };
   }, [repos]);
 
-  const [selectedYear, setSelectedYear] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState(availableTabs[0]?.year ?? '');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Set default selected year to the latest year when tabs are available
   useEffect(() => {
-    if (availableTabs.length > 0 && (!selectedYear || !reposByYear[selectedYear])) {
-      setSelectedYear(availableTabs[0].year);
-      setCurrentPage(1);
-    }
-  }, [availableTabs, reposByYear, selectedYear]);
+    if (!selectedYear && availableTabs[0]) setSelectedYear(availableTabs[0].year);
+  }, [availableTabs, selectedYear]);
 
-  // Get all available languages from repos
-  const availableLanguages = useMemo(() => {
-    const languages = new Set<string>();
-    repos.forEach((repo) => {
-      if (repo.language) {
-        languages.add(repo.language);
-      }
-    });
-    return Array.from(languages).sort();
-  }, [repos]);
+  const availableLanguages = useMemo(
+    () =>
+      [...new Set(repos.flatMap((repo) => (repo.language ? [repo.language] : [])))].sort(),
+    [repos],
+  );
 
-  // Filter repos by year, search query, and language
   const filteredRepos = useMemo(() => {
-    let filtered = reposByYear[selectedYear] || [];
-    
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((repo) => {
-        const nameMatch = repo.name.toLowerCase().includes(query);
-        const descMatch = repo.description?.toLowerCase().includes(query) || false;
-        const langMatch = repo.language?.toLowerCase().includes(query) || false;
-        return nameMatch || descMatch || langMatch;
-      });
-    }
-    
-    // Apply language filter
-    if (selectedLanguage) {
-      filtered = filtered.filter((repo) => repo.language === selectedLanguage);
-    }
-    
-    return filtered;
-  }, [reposByYear, selectedYear, searchQuery, selectedLanguage]);
+    const query = searchQuery.trim().toLowerCase();
+    return (reposByYear[selectedYear] ?? []).filter((repo) => {
+      const matchesLanguage = !selectedLanguage || repo.language === selectedLanguage;
+      const matchesQuery =
+        !query ||
+        repo.name.toLowerCase().includes(query) ||
+        repo.description?.toLowerCase().includes(query) ||
+        repo.language?.toLowerCase().includes(query);
+      return matchesLanguage && Boolean(matchesQuery);
+    });
+  }, [reposByYear, searchQuery, selectedLanguage, selectedYear]);
 
-  const totalPages = Math.ceil(filteredRepos.length / entriesPerPage);
-  const startIndex = (currentPage - 1) * entriesPerPage;
-  const endIndex = startIndex + entriesPerPage;
-  const displayRepos = filteredRepos.slice(startIndex, endIndex);
+  const totalPages = Math.max(1, Math.ceil(filteredRepos.length / ENTRIES_PER_PAGE));
+  const displayRepos = filteredRepos.slice(
+    (currentPage - 1) * ENTRIES_PER_PAGE,
+    currentPage * ENTRIES_PER_PAGE,
+  );
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
+  function resetPage() {
     setCurrentPage(1);
-  }, [selectedYear, searchQuery, selectedLanguage]);
+  }
 
-  // Reset to page 1 when year changes
-  const handleYearChange = (year: string) => {
-    setSelectedYear(year);
-    setCurrentPage(1);
-  };
-
-  const handleLanguageFilter = (language: string | null) => {
-    setSelectedLanguage(language === selectedLanguage ? null : language);
-    setCurrentPage(1);
-  };
-
-  const clearFilters = () => {
+  function clearFilters() {
     setSearchQuery('');
     setSelectedLanguage(null);
-    setCurrentPage(1);
-  };
+    resetPage();
+  }
 
-  const handlePrevious = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
+  if (availableTabs.length === 0) {
+    return <p className="repo-empty">GitHub projects are temporarily unavailable.</p>;
+  }
 
   return (
-    <div>
-      {/* Year tabs - show below GitHub Projects title */}
-      {availableTabs.length > 0 && (
-        <div className="mt-2 mb-4 flex items-center gap-2 flex-wrap border-b border-gray-200 dark:border-gray-700">
-          {availableTabs.map((tab) => (
-            <button
-              key={tab.year}
-              onClick={() => handleYearChange(tab.year)}
-              disabled={tab.count === 0}
-              className={`px-4 py-2 font-medium transition-colors border-b-2 ${
-                tab.count === 0
-                  ? 'border-transparent text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                  : selectedYear === tab.year
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Search bar */}
-      <div className="mb-4">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search repositories by name, description, or language..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-          />
-          <svg
-            className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+    <div className="repo-browser">
+      <div className="repo-tabs" role="tablist" aria-label="Repository years">
+        {availableTabs.map((tab) => (
+          <button
+            key={tab.year}
+            role="tab"
+            aria-selected={selectedYear === tab.year}
+            onClick={() => {
+              setSelectedYear(tab.year);
+              resetPage();
+            }}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          {(searchQuery || selectedLanguage) && (
-            <button
-              onClick={clearFilters}
-              className="absolute right-3 top-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-              aria-label="Clear filters"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
+            {tab.label} <span>{tab.count}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Language filters */}
-      {availableLanguages.length > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by language:</span>
-            <button
-              onClick={() => handleLanguageFilter(null)}
-              className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                selectedLanguage === null
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-              }`}
-            >
-              All
-            </button>
-            {availableLanguages.map((language) => (
-              <button
-                key={language}
-                onClick={() => handleLanguageFilter(language)}
-                className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                  selectedLanguage === language
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`}
-              >
-                {language}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="repo-search">
+        <MagnifyingGlass size={21} weight="bold" aria-hidden="true" />
+        <label htmlFor="repo-search" className="sr-only">
+          Search repositories
+        </label>
+        <input
+          id="repo-search"
+          type="search"
+          placeholder="Search by project, description, or language"
+          value={searchQuery}
+          onChange={(event) => {
+            setSearchQuery(event.target.value);
+            resetPage();
+          }}
+        />
+        {searchQuery || selectedLanguage ? (
+          <button onClick={clearFilters} aria-label="Clear repository filters">
+            <X size={20} weight="bold" aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
 
-      {/* Results count */}
-      {(searchQuery || selectedLanguage) && (
-        <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          Showing {filteredRepos.length} {filteredRepos.length === 1 ? 'repository' : 'repositories'}
-          {searchQuery && ` matching "${searchQuery}"`}
-          {selectedLanguage && ` in ${selectedLanguage}`}
-        </div>
-      )}
+      <div className="language-filters" aria-label="Filter repositories by language">
+        <span>Language</span>
+        <button
+          data-active={selectedLanguage === null}
+          onClick={() => {
+            setSelectedLanguage(null);
+            resetPage();
+          }}
+        >
+          All
+        </button>
+        {availableLanguages.map((language) => (
+          <button
+            key={language}
+            data-active={selectedLanguage === language}
+            onClick={() => {
+              setSelectedLanguage((current) => (current === language ? null : language));
+              resetPage();
+            }}
+          >
+            {language}
+          </button>
+        ))}
+      </div>
 
-      {/* Repos grid */}
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {searchQuery || selectedLanguage ? (
+        <p className="repo-results-count">
+          {filteredRepos.length} {filteredRepos.length === 1 ? 'project' : 'projects'} found
+        </p>
+      ) : null}
+
+      <div className="repo-grid">
         {displayRepos.length > 0 ? (
-          displayRepos.map((repo) => (
-            <RepoCard key={repo.id} repo={repo} />
-          ))
+          displayRepos.map((repo) => <RepoCard key={repo.id} repo={repo} />)
         ) : (
-          <p className="text-gray-500 dark:text-gray-400 col-span-2 text-center py-8">
-            No projects found{searchQuery || selectedLanguage ? ' matching your filters' : ' for this year'}.
-          </p>
+          <p className="repo-empty">No projects match these filters.</p>
         )}
       </div>
 
-      {/* Pagination controls - moved to bottom */}
-      {filteredRepos.length > entriesPerPage && (
-        <div className="mt-6 mb-4 flex items-center justify-center gap-4 flex-wrap">
+      {totalPages > 1 ? (
+        <div className="repo-pagination">
           <button
-            onClick={handlePrevious}
             disabled={currentPage === 1}
-            className={`px-4 py-2 rounded transition-colors ${
-              currentPage === 1
-                ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                : 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
-            }`}
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
           >
             Previous
           </button>
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            Page {currentPage} of {totalPages}
+          <span>
+            {currentPage} / {totalPages}
           </span>
           <button
-            onClick={handleNext}
             disabled={currentPage === totalPages}
-            className={`px-4 py-2 rounded transition-colors ${
-              currentPage === totalPages
-                ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                : 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
-            }`}
+            onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
           >
             Next
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
-
