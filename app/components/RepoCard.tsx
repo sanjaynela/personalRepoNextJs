@@ -11,9 +11,11 @@ type Repo = {
 
 export default function RepoCard({ repo }: { repo: Repo }) {
   const createdLabel = repo.created_at
-    ? new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short' }).format(
-        new Date(repo.created_at),
-      )
+    ? new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      }).format(new Date(repo.created_at))
     : undefined;
 
   return (

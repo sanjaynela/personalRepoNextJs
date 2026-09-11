@@ -27,7 +27,7 @@ export default function PaginatedRepos({ repos }: { repos: Repo[] }) {
 
     for (const repo of repos) {
       if (!repo.created_at) continue;
-      const year = new Date(repo.created_at).getFullYear();
+      const year = new Date(repo.created_at).getUTCFullYear();
       grouped.set(year, [...(grouped.get(year) ?? []), repo]);
     }
 
