@@ -468,13 +468,6 @@ a {
   line-height: 1.08;
 }
 
-.experience-content .eyebrow {
-  margin-bottom: 10px;
-  color: var(--blue-deep);
-  font-size: clamp(1rem, 1.45vw, 1.3rem);
-  letter-spacing: 0.16em;
-}
-
 .text-link {
   display: inline-flex;
   align-items: center;
