@@ -93,12 +93,3 @@ export const experiences: Experience[] = [
     technologies: ['C#', 'Java', 'JavaScript', 'Azure', 'Cosmos DB', 'Braintree'],
   },
 ];
-
-export const impactMetrics = [
-  { value: '259', label: 'REST endpoints', detail: 'migrated' },
-  { value: '33', label: 'NestJS modules', detail: 'built' },
-  { value: '40%', label: 'fewer production', detail: 'incidents' },
-  { value: '50K+', label: 'sensor readings', detail: 'per day' },
-  { value: '99.9%', label: 'platform', detail: 'uptime' },
-  { value: 'Led 6', label: 'engineers', detail: 'across 5 apps' },
-];

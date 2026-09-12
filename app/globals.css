@@ -359,55 +359,8 @@ a {
   transform: rotate(-5deg);
 }
 
-.impact-strip {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  border: 1px solid color-mix(in oklch, var(--line) 76%, transparent);
-  border-radius: 12px;
-  background: var(--surface-subtle);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-
-.impact-item {
-  min-height: 150px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 18px 12px;
-  text-align: center;
-}
-
-.impact-item + .impact-item {
-  border-left: 1px solid var(--line);
-}
-
-.impact-item svg {
-  margin-bottom: 13px;
-  color: var(--blue);
-}
-
-.impact-item strong {
-  font-size: clamp(1.55rem, 2.3vw, 2.25rem);
-  font-weight: 820;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
-}
-
-.impact-item span,
-.impact-item small {
-  color: var(--ink-soft);
-  font-size: 0.78rem;
-  line-height: 1.45;
-}
-
-.impact-item span {
-  margin-top: 9px;
-}
-
 .experience-section {
-  padding-block: clamp(42px, 4vw, 58px) clamp(18px, 2vw, 28px);
+  padding-block: clamp(76px, 7vw, 108px) clamp(18px, 2vw, 28px);
 }
 
 .experience-layout {
@@ -513,6 +466,11 @@ a {
   font-weight: 820;
   letter-spacing: -0.05em;
   line-height: 1.08;
+}
+
+.experience-content .section-heading-row h2 {
+  font-size: clamp(2.65rem, 4.4vw, 4.25rem);
+  line-height: 0.98;
 }
 
 .text-link {
@@ -1172,18 +1130,6 @@ a {
     display: none;
   }
 
-  .impact-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .impact-item:nth-child(4) {
-    border-left: 0;
-  }
-
-  .impact-item:nth-child(n + 4) {
-    border-top: 1px solid var(--line);
-  }
-
   .experience-layout {
     grid-template-columns: 190px minmax(0, 1fr);
     gap: 36px;
@@ -1274,26 +1220,6 @@ a {
   .capability {
     grid-template-columns: 30px 1fr;
     gap: 11px;
-  }
-
-  .impact-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .impact-item {
-    min-height: 145px;
-  }
-
-  .impact-item:nth-child(odd) {
-    border-left: 0;
-  }
-
-  .impact-item:nth-child(even) {
-    border-left: 1px solid var(--line);
-  }
-
-  .impact-item:nth-child(n + 3) {
-    border-top: 1px solid var(--line);
   }
 
   .experience-layout {
@@ -1428,15 +1354,6 @@ a {
 
   .capabilities-list {
     grid-template-columns: 1fr;
-  }
-
-  .impact-item strong {
-    font-size: 1.5rem;
-  }
-
-  .impact-item span,
-  .impact-item small {
-    font-size: 0.7rem;
   }
 
   .experience-feature-header {

@@ -2,21 +2,17 @@ import Image from 'next/image';
 import {
   ArrowRight,
   AppleLogo,
-  ChartBar,
   CheckCircle,
   Cloud,
   Code,
-  Cube,
   Database,
   DeviceMobile,
   GithubLogo,
   LinkedinLogo,
-  ShieldCheck,
-  UsersThree,
 } from '@phosphor-icons/react/dist/ssr';
 import ExperienceTimeline from './components/ExperienceTimeline';
 import PaginatedRepos from './components/PaginatedRepos';
-import { experiences, impactMetrics } from './data/resume';
+import { experiences } from './data/resume';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,8 +31,6 @@ const capabilityGroups = [
   { name: 'Full-stack', detail: 'TypeScript, React, Node.js', icon: Code },
   { name: 'Systems & DevOps', detail: 'Scalable, reliable, observable', icon: Database },
 ];
-
-const metricIcons = [Code, Cube, ChartBar, Database, ShieldCheck, UsersThree];
 
 async function getRepositories(): Promise<Repo[]> {
   const username = process.env.GITHUB_USERNAME || 'sanjaynela';
@@ -84,8 +78,8 @@ export default async function HomePage() {
             I build reliable systems across cloud, mobile, and connected devices.
           </p>
           <div className="hero-actions">
-            <a className="button button-primary" href="#experience">
-              Explore experience <ArrowRight size={18} weight="bold" aria-hidden="true" />
+            <a className="button button-primary" href="#github">
+              Explore GitHub Projects <ArrowRight size={18} weight="bold" aria-hidden="true" />
             </a>
             <a
               className="button button-secondary"
@@ -116,20 +110,6 @@ export default async function HomePage() {
             real-world impact.
           </p>
         </div>
-      </section>
-
-      <section className="impact-strip page-shell" aria-label="Career impact">
-        {impactMetrics.map((metric, index) => {
-          const Icon = metricIcons[index];
-          return (
-            <div className="impact-item" key={metric.value + metric.label}>
-              <Icon size={28} weight="duotone" aria-hidden="true" />
-              <strong>{metric.value}</strong>
-              <span>{metric.label}</span>
-              <small>{metric.detail}</small>
-            </div>
-          );
-        })}
       </section>
 
       <section id="experience" className="experience-section page-shell section-anchor">
