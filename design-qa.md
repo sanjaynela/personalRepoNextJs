@@ -20,6 +20,6 @@
   deterministic across server and client rendering.
 - P2 issues found and fixed during comparison: oversized hero, overly tall career card, excess section spacing, and a missing mobile Projects navigation item.
 - No remaining P0, P1, or P2 issues. Minor P3 variation remains because the production page contains the full factual work history and denser resume copy than the illustrative mockup.
-- Follow-up QA verified the new GitHub CTA target, the larger experience heading, and 390px mobile layout with no horizontal overflow or console errors.
+- Follow-up QA verified the new GitHub CTA target, an enlarged uppercase Experience label with a restrained Professional journey subheading, and the 390px mobile layout with no horizontal overflow or console errors.
 
 final result: passed
